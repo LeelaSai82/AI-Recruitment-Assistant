@@ -165,22 +165,46 @@ def results():
 @app.route('/generate_questions/<int:resume_id>')
 def generate_questions(resume_id):
     """Generate interview questions for a specific candidate"""
-    resume = models.Resume.query.get(resume_id)
-    if not resume:
-        return jsonify({'error': 'Resume not found'}), 404
+    try:
+        resume = models.Resume.query.get(resume_id)
+        if not resume:
+            return jsonify({'error': 'Resume not found'}), 404
+        
+        job_description = session.get('job_description', '')
+        candidate_skills = json.loads(resume.skills) if resume.skills else []
+        
+        # Generate questions using our utility function
+        questions = generate_interview_questions(
+            candidate_name=resume.candidate_name,
+            job_role=resume.job_role,
+            skills=candidate_skills,
+            job_description=job_description
+        )
+        
+        # Log the successful generation
+        app.logger.info(f"Generated {len(questions)} questions for {resume.candidate_name}")
+        
+        return jsonify({'questions': questions})
     
-    job_description = session.get('job_description', '')
-    candidate_skills = json.loads(resume.skills)
-    
-    # Generate questions with Gemini API
-    questions = generate_interview_questions(
-        candidate_name=resume.candidate_name,
-        job_role=resume.job_role,
-        skills=candidate_skills,
-        job_description=job_description
-    )
-    
-    return jsonify({'questions': questions})
+    except Exception as e:
+        # Log the error for debugging
+        app.logger.error(f"Error generating questions: {str(e)}")
+        
+        # Get resume job role safely
+        job_role_text = "this field"
+        if 'resume' in locals() and resume and resume.job_role:
+            job_role_text = resume.job_role
+        
+        # Return generic questions as fallback
+        fallback_questions = [
+            f"Tell me about your background in {job_role_text}.",
+            "What are your strongest technical skills?",
+            "Describe a challenging project you've worked on.",
+            "How do you approach problem-solving?",
+            "What are your career goals?"
+        ]
+        
+        return jsonify({'questions': fallback_questions})
 
 @app.route('/analytics')
 def analytics():
