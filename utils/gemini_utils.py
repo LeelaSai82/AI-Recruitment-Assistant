@@ -1,13 +1,14 @@
 import os
 import google.generativeai as genai
 import logging
+import re  # Added for regex pattern matching
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize Gemini API with the provided API key
-API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyBDZZJ4NxgNqiQvMHY3JQF2lY-fRZQWCJs")
+API_KEY = "AIzaSyBDZZJ4NxgNqiQvMHY3JQF2lY-fRZQWCJs"  # User-provided API key
 genai.configure(api_key=API_KEY)
 
 def generate_interview_questions(candidate_name, job_role, skills, job_description, num_questions=5):
@@ -92,5 +93,4 @@ def generate_interview_questions(candidate_name, job_role, skills, job_descripti
             "What are your career goals for the next few years?"
         ]
 
-# Fix: Import re module for pattern matching in question cleaning
-import re
+# Module already imported at the top

@@ -15,6 +15,13 @@ except LookupError:
     nltk.download('punkt')
     nltk.download('stopwords')
 
+# Ensure punkt_tab resource is available
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    # Since punkt_tab isn't directly downloadable, we'll use punkt for tokenization
+    pass
+
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -112,8 +119,9 @@ def preprocess_text(text):
     # Remove special characters, keeping alphanumeric and spaces
     text = re.sub(r'[^a-zA-Z0-9\s]', ' ', text)
     
-    # Tokenize
-    tokens = word_tokenize(text)
+    # Simple tokenization - split by whitespace
+    # This avoids the need for punkt_tab
+    tokens = text.split()
     
     # Remove stopwords
     stop_words = set(stopwords.words('english'))

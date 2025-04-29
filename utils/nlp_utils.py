@@ -14,6 +14,13 @@ except LookupError:
     nltk.download('punkt')
     nltk.download('stopwords')
 
+# Ensure we're using the correct tokenizers
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    # We'll modify our tokenization approach to avoid punkt_tab
+    pass
+
 # List of common skills
 SKILLS = [
     'python', 'java', 'javascript', 'js', 'html', 'css', 'react', 'angular', 'vue', 'node', 'express',
@@ -45,8 +52,9 @@ def preprocess_text(text):
     text = re.sub(r'[^\w\s]', ' ', text)
     text = re.sub(r'\s+', ' ', text).strip()
     
-    # Tokenize the text
-    tokens = word_tokenize(text)
+    # Simple tokenization - split by whitespace
+    # This avoids the need for punkt_tab
+    tokens = text.split()
     
     # Remove stopwords
     stop_words = set(stopwords.words('english'))
