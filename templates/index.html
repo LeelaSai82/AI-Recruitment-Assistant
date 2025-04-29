@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Recruitment Assistant</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #0d6efd;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+            color: white;
+            padding: 3rem 0;
+            border-radius: 0 0 1rem 1rem;
+        }
+        .feature-icon {
+            background-color: #e9ecef;
+            border-radius: 50%;
+            width: 4rem;
+            height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        .feature-icon i {
+            font-size: 1.5rem;
+            color: #0d6efd;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #0d6efd;
+            background-color: #f1f8ff;
+        }
+        .upload-icon {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+        footer {
+            background-color: #212529;
+            color: white;
+            padding: 2rem 0;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0b5ed7;
+        }
+        #fileList {
+            margin-top: 1rem;
+        }
+        .file-item {
+            background-color: #e9ecef;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .remove-file {
+            color: #dc3545;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot me-2"></i>AI Recruitment Assistant
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/analytics">Analytics</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold mb-3">Streamline Your Recruitment Process</h1>
+                    <p class="lead mb-4">Match resumes to job descriptions, analyze candidate skills, and generate personalized interview questions with AI</p>
+                </div>
+                <div class="col-lg-6">
+                    <img src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/svgs/solid/users-gear.svg" class="img-fluid" alt="Recruitment Process" style="filter: brightness(0) invert(1); opacity: 0.8; max-height: 250px;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 p-4 text-center">
+                        <div class="feature-icon mx-auto">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <h3>Resume Analysis</h3>
+                        <p class="text-muted">Extract skills and predict ideal job roles from candidate resumes automatically</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 p-4 text-center">
+                        <div class="feature-icon mx-auto">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                        <h3>Match Scoring</h3>
+                        <p class="text-muted">Calculate similarity scores between candidates and job requirements</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 p-4 text-center">
+                        <div class="feature-icon mx-auto">
+                            <i class="fas fa-comment-dots"></i>
+                        </div>
+                        <h3>AI Interview Questions</h3>
+                        <p class="text-muted">Generate personalized interview questions based on candidate skills</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Upload Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card p-4">
+                        <h2 class="text-center mb-4">Upload Resumes & Job Description</h2>
+                        
+                        <!-- Display flash messages -->
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                            <div class="mb-4">
+                                <label for="jobDescription" class="form-label fw-bold">Job Description</label>
+                                <textarea class="form-control" id="jobDescription" name="job_description" rows="5" placeholder="Paste the job description here..." required></textarea>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Resumes (PDF, DOCX, TXT)</label>
+                                <div class="upload-area" id="uploadArea">
+                                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                    <h5>Drag & Drop Files Here</h5>
+                                    <p class="text-muted mb-3">or</p>
+                                    <input type="file" id="resumeFiles" name="resumes" multiple accept=".pdf,.docx,.txt" class="d-none">
+                                    <button type="button" class="btn btn-primary" id="browseBtn">Browse Files</button>
+                                </div>
+                                <div id="fileList" class="mt-3"></div>
+                            </div>
+                            
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-5" id="analyzeBtn">
+                                    <i class="fas fa-search me-2"></i>Analyze Resumes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-4 bg-dark text-white">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-robot me-2"></i>AI Recruitment Assistant</h5>
+                    <p class="small">An AI-powered tool for streamlining the recruitment process.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="small">&copy; 2023 AI Recruitment Assistant. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const resumeFiles = document.getElementById('resumeFiles');
+            const browseBtn = document.getElementById('browseBtn');
+            const fileList = document.getElementById('fileList');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            // Open file browser when clicking the upload area or browse button
+            uploadArea.addEventListener('click', function() {
+                resumeFiles.click();
+            });
+            
+            browseBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                resumeFiles.click();
+            });
+            
+            // Prevent default dragover behavior
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('border-primary');
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('border-primary');
+            });
+            
+            // Handle dropped files
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('border-primary');
+                
+                const files = e.dataTransfer.files;
+                handleFiles(files);
+            });
+            
+            // Handle selected files
+            resumeFiles.addEventListener('change', function() {
+                handleFiles(this.files);
+            });
+            
+            // Process files and display in the list
+            function handleFiles(files) {
+                if (files.length === 0) return;
+                
+                // Clear previous file list if user re-selects files
+                if (resumeFiles.files.length === files.length) {
+                    fileList.innerHTML = '';
+                }
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    // Check if file type is accepted
+                    const fileExt = file.name.split('.').pop().toLowerCase();
+                    if (!['pdf', 'docx', 'txt'].includes(fileExt)) {
+                        alert(`File type .${fileExt} is not supported. Please upload PDF, DOCX, or TXT files.`);
+                        continue;
+                    }
+                    
+                    // Display file in the list
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <div>
+                            <i class="fas ${fileExt === 'pdf' ? 'fa-file-pdf' : fileExt === 'docx' ? 'fa-file-word' : 'fa-file-alt'} me-2"></i>
+                            ${file.name}
+                        </div>
+                        <span class="remove-file" data-filename="${file.name}">
+                            <i class="fas fa-times"></i>
+                        </span>
+                    `;
+                    fileList.appendChild(fileItem);
+                }
+                
+                // Add event listeners to remove buttons
+                document.querySelectorAll('.remove-file').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        this.parentElement.remove();
+                    });
+                });
+                
+                // Show analyze button
+                if (fileList.children.length > 0) {
+                    analyzeBtn.disabled = false;
+                } else {
+                    analyzeBtn.disabled = true;
+                }
+            }
+            
+            // Form submission validation
+            document.getElementById('uploadForm').addEventListener('submit', function(e) {
+                const jobDescription = document.getElementById('jobDescription').value.trim();
+                
+                if (!jobDescription) {
+                    e.preventDefault();
+                    alert('Please enter a job description');
+                    return false;
+                }
+                
+                if (fileList.children.length === 0) {
+                    e.preventDefault();
+                    alert('Please upload at least one resume');
+                    return false;
+                }
+                
+                // Show loading state
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing...';
+            });
+        });
+    </script>
+</body>
+</html>

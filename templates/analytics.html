@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - AI Recruitment Assistant</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #0d6efd;
+        }
+        .analytics-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+            color: white;
+            padding: 2rem 0;
+            border-radius: 0 0 1rem 1rem;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            margin-bottom: 1.5rem;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        .stat-icon {
+            background-color: #e9ecef;
+            width: 4rem;
+            height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+        }
+        .stat-icon i {
+            font-size: 1.75rem;
+            color: #0d6efd;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+        footer {
+            background-color: #212529;
+            color: white;
+            padding: 2rem 0;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0b5ed7;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot me-2"></i>AI Recruitment Assistant
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/analytics">Analytics</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Analytics Header -->
+    <section class="analytics-header">
+        <div class="container">
+            <h1 class="display-5 fw-bold">Recruitment Analytics</h1>
+            <p class="lead">Get insights about your candidate pool and job matching</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <!-- Stats Cards -->
+        <div class="row mb-5">
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h2 class="stat-value">{{ total_resumes }}</h2>
+                    <h5>Total Resumes</h5>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <h2 class="stat-value">{{ job_role_counts|length }}</h2>
+                    <h5>Job Roles</h5>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <h2 class="stat-value">{{ "%.1f"|format(avg_similarity) }}%</h2>
+                    <h5>Avg. Match Score</h5>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="row">
+            <!-- Job Roles Distribution -->
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title"><i class="fas fa-chart-pie me-2"></i>Job Roles Distribution</h4>
+                        <div class="chart-container">
+                            <canvas id="jobRolesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Matching Scores Distribution -->
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title"><i class="fas fa-chart-bar me-2"></i>Matching Score Distribution</h4>
+                        <div class="chart-container">
+                            <canvas id="scoreDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="row mt-3">
+            <div class="col-md-6 mx-auto text-center">
+                <div class="d-grid gap-3">
+                    <a href="/" class="btn btn-primary btn-lg">
+                        <i class="fas fa-home me-2"></i>Return to Home
+                    </a>
+                    <form action="/clear_data" method="post" onsubmit="return confirm('Are you sure you want to clear all data? This action cannot be undone.');">
+                        <button type="submit" class="btn btn-outline-danger btn-lg w-100">
+                            <i class="fas fa-trash-alt me-2"></i>Clear All Data
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-4 bg-dark text-white">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-robot me-2"></i>AI Recruitment Assistant</h5>
+                    <p class="small">An AI-powered tool for streamlining the recruitment process.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="small">&copy; 2023 AI Recruitment Assistant. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom Charts -->
+    <script src="/static/js/chart_utils.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Data for the job roles chart
+            const jobRolesData = {
+                labels: [
+                    {% for role, count in job_role_counts.items() %}
+                        "{{ role }}",
+                    {% endfor %}
+                ],
+                datasets: [{
+                    label: 'Number of Candidates',
+                    data: [
+                        {% for role, count in job_role_counts.items() %}
+                            {{ count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        '#0d6efd',
+                        '#6610f2',
+                        '#6f42c1',
+                        '#d63384',
+                        '#dc3545',
+                        '#fd7e14',
+                        '#ffc107',
+                        '#198754',
+                        '#20c997',
+                        '#0dcaf0'
+                    ]
+                }]
+            };
+
+            // Configure and render the job roles chart
+            const jobRolesCtx = document.getElementById('jobRolesChart').getContext('2d');
+            new Chart(jobRolesCtx, {
+                type: 'pie',
+                data: jobRolesData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Data for the score distribution chart
+            const scoreDistributionData = {
+                labels: ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'],
+                datasets: [{
+                    label: 'Number of Candidates',
+                    data: [0, 0, 0, 0, 0], // Placeholder - calculated on server side if needed
+                    backgroundColor: [
+                        '#dc3545',
+                        '#fd7e14',
+                        '#ffc107',
+                        '#198754',
+                        '#0d6efd'
+                    ]
+                }]
+            };
+
+            // Configure and render the score distribution chart
+            const scoreDistributionCtx = document.getElementById('scoreDistributionChart').getContext('2d');
+            new Chart(scoreDistributionCtx, {
+                type: 'bar',
+                data: scoreDistributionData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Candidates'
+                            },
+                            ticks: {
+                                precision: 0
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Match Score Range'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
