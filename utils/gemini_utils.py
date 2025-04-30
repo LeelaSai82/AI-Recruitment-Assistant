@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize Gemini API with the provided API key
-API_KEY = "AIzaSyBDZZJ4NxgNqiQvMHY3JQF2lY-fRZQWCJs"  # User-provided API key
+API_KEY = ""  # User-provided API key
 genai.configure(api_key=API_KEY)
 
 def generate_interview_questions(candidate_name, job_role, skills, job_description, num_questions=5):
