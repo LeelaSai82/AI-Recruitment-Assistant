@@ -1,164 +1,180 @@
 import os
 import logging
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
-import uuid
-import json
+from datetime import datetime
+from utils.resume_parser import extract_skills_from_resume, predict_job_role
+from utils.nlp_utils import extract_skills_from_job_description, calculate_similarity
+from utils.gemini_utils import generate_interview_questions
 
-# Set up logging for debugging
+# Set up logging
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-# Create SQLAlchemy base class
+# Create instance directory
+basedir = os.path.abspath(os.path.dirname(__file__))
+instance_path = os.path.join(basedir, 'instance')
+os.makedirs(instance_path, exist_ok=True)
+
+# Create uploads directory
+uploads_path = os.path.join(basedir, 'uploads')
+os.makedirs(uploads_path, exist_ok=True)
+
 class Base(DeclarativeBase):
     pass
 
-# Initialize database
 db = SQLAlchemy(model_class=Base)
 
-# Create the Flask app
+# Create the app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "recruitment_assistant_secret_key")
+app.secret_key = os.environ.get("SESSION_SECRET", "default-secret-key-for-development")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure the database - using SQLite for local development
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///recruitment.db")
+# Configure the database - Use direct path for SQLite
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(basedir, 'instance', 'recruitment.db')}"
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Set upload folder and allowed extensions
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Create uploads directory if it doesn't exist
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
-# Initialize the app with SQLAlchemy
+# Initialize the app with the extension
 db.init_app(app)
 
-# Import resume parser and other utilities
-from utils.resume_parser import extract_skills_from_resume, predict_job_role
-from utils.nlp_utils import calculate_similarity, extract_skills_from_job_description
-from utils.gemini_utils import generate_interview_questions
+# Configure upload settings
+UPLOAD_FOLDER = uploads_path
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'txt'}
 
-# Import models
-with app.app_context():
-    import models
-    db.create_all()
-
-# Helper function to check allowed file extensions
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Routes
+# Import models after db is defined
+with app.app_context():
+    # Import the models here
+    import models
+    
+    # Create all tables
+    db.create_all()
+
 @app.route('/')
 def index():
     """Home page with resume upload form"""
     return render_template('index.html')
 
-@app.route('/upload', methods=['POST'])
+@app.route('/upload_resumes', methods=['POST'])
 def upload_resumes():
     """Handle resume uploads"""
+    # Check if job description is provided
+    job_description = request.form.get('job_description', '').strip()
+    if not job_description:
+        flash('Please provide a job description', 'danger')
+        return redirect(url_for('index'))
+    
+    # Check if at least one resume is uploaded
     if 'resumes' not in request.files:
-        flash('No file part', 'danger')
-        return redirect(request.url)
+        flash('No resume files uploaded', 'danger')
+        return redirect(url_for('index'))
     
     files = request.files.getlist('resumes')
-    job_description = request.form.get('job_description', '')
-    
-    if not job_description:
-        flash('Job description is required', 'danger')
-        return redirect(request.url)
-    
-    # Store job description in session
-    session['job_description'] = job_description
+    if not files or files[0].filename == '':
+        flash('No resume files selected', 'danger')
+        return redirect(url_for('index'))
     
     # Extract skills from job description
     job_skills = extract_skills_from_job_description(job_description)
+    
+    # Save job description and skills in session
+    session['job_description'] = job_description
     session['job_skills'] = job_skills
-
+    
     # Process each uploaded resume
     parsed_resumes = []
     job_role_counts = {}
-
+    
     for file in files:
-        if file.filename == '':
-            continue
-            
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            unique_filename = f"{uuid.uuid4()}_{filename}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-            file.save(filepath)
-            
             try:
+                # Secure the filename and save the file
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                
                 # Extract candidate information from resume
-                candidate_name = filename.split('.')[0]  # Using filename as candidate name
-                candidate_skills = extract_skills_from_resume(filepath)
-                job_role = predict_job_role(candidate_skills)
-                similarity_score = calculate_similarity(candidate_skills, job_skills)
+                skills = extract_skills_from_resume(filepath)
+                job_role = predict_job_role(skills)
                 
-                # Update job role counts for analytics
-                if job_role in job_role_counts:
-                    job_role_counts[job_role] += 1
-                else:
-                    job_role_counts[job_role] = 1
+                # Extract candidate name from filename (assuming format: Name_Resume.pdf)
+                candidate_name = filename.split('_')[0].replace('-', ' ').title()
+                if '.' in candidate_name:
+                    candidate_name = candidate_name.split('.')[0]
                 
-                # Store resume data
-                new_resume = models.Resume(
+                # Calculate similarity score with job description
+                similarity_score = calculate_similarity(skills, job_skills)
+                similarity_percentage = int(similarity_score * 100)
+                
+                # Save to database
+                resume = models.Resume(
                     filename=filename,
                     filepath=filepath,
                     candidate_name=candidate_name,
                     job_role=job_role,
-                    skills=json.dumps(candidate_skills),
-                    similarity_score=similarity_score
+                    skills=json.dumps(skills),
+                    similarity_score=similarity_percentage
                 )
-                db.session.add(new_resume)
+                db.session.add(resume)
                 
                 # Add to parsed resumes list
                 parsed_resumes.append({
-                    'id': new_resume.id,
+                    'id': resume.id if resume.id else 0,
                     'candidate_name': candidate_name,
                     'job_role': job_role,
-                    'skills': candidate_skills,
-                    'similarity_score': similarity_score
+                    'skills': skills,
+                    'similarity_score': similarity_percentage
                 })
                 
+                # Update job role counts for analytics
+                job_role_counts[job_role] = job_role_counts.get(job_role, 0) + 1
+                
             except Exception as e:
-                app.logger.error(f"Error processing {filename}: {str(e)}")
-                flash(f"Error processing {filename}: {str(e)}", 'danger')
+                app.logger.error(f"Error processing resume {file.filename}: {str(e)}")
+                flash(f'Error processing resume {file.filename}', 'danger')
     
-    # Save all data to database
-    db.session.commit()
-    
-    # Store job role counts in session for analytics
+    # Save job role counts in session for analytics
     session['job_role_counts'] = job_role_counts
     
-    # Sort resumes by similarity score
+    # Commit database changes
+    db.session.commit()
+    
+    # Sort resumes by similarity score (descending)
     parsed_resumes.sort(key=lambda x: x['similarity_score'], reverse=True)
+    
+    # Store in session
     session['parsed_resumes'] = parsed_resumes
     
+    flash(f'Successfully processed {len(parsed_resumes)} resumes', 'success')
     return redirect(url_for('results'))
 
 @app.route('/results')
 def results():
     """Show matching results page"""
-    parsed_resumes = session.get('parsed_resumes', [])
     job_description = session.get('job_description', '')
     job_skills = session.get('job_skills', [])
     
-    if not parsed_resumes:
-        flash('No resumes processed. Please upload resumes first.', 'warning')
-        return redirect(url_for('index'))
+    # Get resumes from database
+    resumes = models.Resume.query.order_by(models.Resume.similarity_score.desc()).all()
+    
+    # For each resume, parse the skills from JSON string
+    for resume in resumes:
+        resume.skills = json.loads(resume.skills) if resume.skills else []
     
     return render_template('results.html', 
-                          resumes=parsed_resumes, 
+                          resumes=resumes, 
                           job_description=job_description,
                           job_skills=job_skills)
 
@@ -214,12 +230,42 @@ def analytics():
     
     # Get all resumes for more detailed analytics
     resumes = models.Resume.query.all()
-    avg_similarity = sum([r.similarity_score for r in resumes]) / len(resumes) if resumes else 0
+    
+    # Calculate average match score properly
+    if resumes:
+        # Already stored as percentage (0-100), no need to multiply by 100
+        avg_similarity = sum([r.similarity_score for r in resumes]) / len(resumes)
+    else:
+        avg_similarity = 0
+    
+    # Create score ranges for the chart
+    score_ranges = {
+        '0-20%': 0,
+        '21-40%': 0,
+        '41-60%': 0,
+        '61-80%': 0,
+        '81-100%': 0
+    }
+    
+    # Count resumes in each match score range
+    for resume in resumes:
+        score = resume.similarity_score
+        if score <= 20:
+            score_ranges['0-20%'] += 1
+        elif score <= 40:
+            score_ranges['21-40%'] += 1
+        elif score <= 60:
+            score_ranges['41-60%'] += 1
+        elif score <= 80:
+            score_ranges['61-80%'] += 1
+        else:
+            score_ranges['81-100%'] += 1
     
     return render_template('analytics.html', 
                           job_role_counts=job_role_counts,
                           total_resumes=total_resumes,
-                          avg_similarity=avg_similarity)
+                          avg_similarity=avg_similarity,
+                          score_ranges=score_ranges)
 
 @app.route('/clear_data', methods=['POST'])
 def clear_data():

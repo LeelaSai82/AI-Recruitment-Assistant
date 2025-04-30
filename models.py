@@ -13,4 +13,4 @@ class Resume(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def __repr__(self):
-        return f'<Resume {self.filename}>'
+        return f'<Resume {self.candidate_name} - {self.job_role}>'
